@@ -51,41 +51,32 @@ HashTable *create_table()
 // Insert a key-value pair into the hash table
 void insert(HashTable *table, const char *key, int value)
 {
-    unsigned int index = hash(key);
+    unsigned int index = hash(key) % TABLE_SIZE;  // Ensure valid index
     HashNode *new_node = create_node(key, value);
 
+    if (!new_node) {
+        printf("Memory allocation failed for new node\n");
+        return;
+    }
+
     // Collision handling using chaining
-    if (table->buckets[index] == NULL)
-    {
-        table->buckets[index] = new_node;
-    }
-    else
-    {
-        HashNode *current = table->buckets[index];
-        while (current->next != NULL)
-        {
-            // Update value if key already exists
-            if (strcmp(current->key, key) == 0)
-            {
-                current->value = value;
-                free(new_node->key);
-                free(new_node);
-                return;
-            }
-            current = current->next;
-        }
-        // Check the last node
-        if (strcmp(current->key, key) == 0)
-        {
-            current->value = value;
+    HashNode *current = table->buckets[index];
+    HashNode *prev = NULL;
+
+    while (current) {
+        if (strcmp(current->key, key) == 0) {
+            current->value = value;  // Update value
             free(new_node->key);
-            free(new_node);
+            free(new_node);  // Avoid memory leak
+            return;
         }
-        else
-        {
-            current->next = new_node;
-        }
+        prev = current;
+        current = current->next;
     }
+
+    // If key doesn't exist, insert at the beginning of the list
+    new_node->next = table->buckets[index];
+    table->buckets[index] = new_node;
 }
 
 // Search for a value by key
